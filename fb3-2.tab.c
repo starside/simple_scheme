@@ -104,7 +104,11 @@ extern int yydebug;
   enum yytokentype
   {
     EOL = 258,
-    IDENTIFIER = 259
+    IDENTIFIER = 259,
+    BOOLEAN = 260,
+    NUMBER = 261,
+    CHARACTER = 262,
+    STRING = 263
   };
 #endif
 
@@ -124,7 +128,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 128 "fb3-2.tab.c" /* yacc.c:358  */
+#line 132 "fb3-2.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -369,7 +373,7 @@ union yyalloc
 #define YYLAST   3
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  5
+#define YYNTOKENS  9
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  2
 /* YYNRULES -- Number of rules.  */
@@ -380,7 +384,7 @@ union yyalloc
 /* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
    by yylex, with out-of-bounds checking.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   259
+#define YYMAXUTOK   263
 
 #define YYTRANSLATE(YYX)                                                \
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -414,14 +418,15 @@ static const yytype_uint8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     1,     2,     3,     4
+       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
+       5,     6,     7,     8
 };
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    13,    13,    14
+       0,    16,    16,    17
 };
 #endif
 
@@ -430,7 +435,8 @@ static const yytype_uint8 yyrline[] =
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "$end", "error", "$undefined", "EOL", "IDENTIFIER", "$accept", "boot", YY_NULLPTR
+  "$end", "error", "$undefined", "EOL", "IDENTIFIER", "BOOLEAN", "NUMBER",
+  "CHARACTER", "STRING", "$accept", "boot", YY_NULLPTR
 };
 #endif
 
@@ -439,7 +445,7 @@ static const char *const yytname[] =
    (internal) symbol number NUM (which must be that of a token).  */
 static const yytype_uint16 yytoknum[] =
 {
-       0,   256,   257,   258,   259
+       0,   256,   257,   258,   259,   260,   261,   262,   263
 };
 # endif
 
@@ -497,13 +503,13 @@ static const yytype_int8 yycheck[] =
      symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,     6,     0,     3
+       0,    10,     0,     3
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,     5,     6,     6
+       0,     9,    10,    10
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
@@ -1186,7 +1192,7 @@ yyreduce:
   switch (yyn)
     {
       
-#line 1190 "fb3-2.tab.c" /* yacc.c:1646  */
+#line 1196 "fb3-2.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1414,7 +1420,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 19 "fb3-2.y" /* yacc.c:1906  */
+#line 22 "fb3-2.y" /* yacc.c:1906  */
 
 
 yyerror(char *s)

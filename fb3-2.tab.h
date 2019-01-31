@@ -46,7 +46,11 @@ extern int yydebug;
   enum yytokentype
   {
     EOL = 258,
-    IDENTIFIER = 259
+    IDENTIFIER = 259,
+    BOOLEAN = 260,
+    NUMBER = 261,
+    CHARACTER = 262,
+    STRING = 263
   };
 #endif
 

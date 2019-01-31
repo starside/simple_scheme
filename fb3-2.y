@@ -4,9 +4,12 @@
 #  include "fb3-2.h"
 %}
 
-
 %token EOL
 %token IDENTIFIER
+%token BOOLEAN
+%token NUMBER
+%token CHARACTER
+%token STRING
 
 %%
 
