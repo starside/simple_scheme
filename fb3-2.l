@@ -59,6 +59,8 @@ NUM16 {PREFIX16}{COMPLEX16}
 
 NUM {NUM2}|{NUM8}|{NUM10}|{NUM16}
 
+DELIMETER [\[\] \t\n\r()";#]
+
 /* identifier token */
 LETTER [a-zA-Z]
 INITIAL {LETTER}|[!$%&*/:<=>?~_^]
@@ -66,16 +68,27 @@ SUBSEQUENT {INITIAL}|{DIGIT}|"."|"+"|"-"|"@"
 IDENTIFIER {INITIAL}{SUBSEQUENT}*|"+"|"-"|"..."
 
 /* string token */
-STRINGCHARATER (\\\")|(\\\\)
+STRINGCHARATER [^"\\]|\\\"|\\\\|\\a|\\b|\\f|\\n|\\r|\\t|\\v|\\x{HEX_SCALAR};|\\[ \t]*[\n\r]+[ \t]*
+STRING \"{STRINGCHARATER}*\"
+
+BOOLEAN #t|#T|#f|#F
+
+CHARACTERNAME nul|alarm|backspace|tab|linefeed|newline|vtab|page|return|esc|space|delete
+CHARACTER #\\{CHARACTERNAME}|#\\x{HEX_SCALAR}|#\\.
 
 %x STRING_MODE
 
 %%
-{NUM}				{ printf("number, ");}
-{IDENTIFIER}		{ printf("identifier"); }
-\"					{ printf("string mode, "); BEGIN STRING_MODE;}
-[ \t]*				/* ignore whitespace */
-.					{ printf("Unknown token"); }
+{NUM}/{DELIMETER}				{ printf("number, ");}
+{IDENTIFIER}/{DELIMETER}		{ printf("identifier"); }
+{BOOLEAN}/{DELIMETER}			{ printf(" bool "); }
+{CHARACTER}/{DELIMETER}			{ printf(" CHARACTER "); }
+{STRING}						{ printf(" string "); }
+{DELIMETER}						{printf(" delim ");}
+#\(|,@|#'|#`|#,|#,@				{printf(" compound_lexeme ");}
+[()\[\]'`,.]					{ printf(" simple_lexeme "); }
+[ \t]+							/* ignore space */
+.								{ printf("Unknown token"); }
 
 <STRING_MODE>[^"\\]*								{ printf("any string char, "); }
 <STRING_MODE>\\\"|\\\\|\\a|\\b|\\f|\\n|\\r|\\t|\\v	{ printf("escape, "); }
