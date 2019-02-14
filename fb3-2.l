@@ -1,5 +1,74 @@
 /* just like Unix wc */
+%option yylineno
+
 %{
+#include <string.h>
+#include <assert.h>
+#include "fb3-2.h"
+#include "fb3-2.tab.h"
+
+extern temp_parse scratch;
+
+#define STACK_SIZE 10
+int state_stack_i = 0;
+int state_stack[STACK_SIZE];
+
+int complex_state = 0;
+number_tok complex_num;
+
+#define PUSH_STATE(s) { \
+	assert(state_stack_i < STACK_SIZE); \
+	state_stack[state_stack_i] = s; \
+	state_stack_i++; \
+	BEGIN s; \
+}
+
+#define POP_STATE() { \
+	state_stack_i--; \
+	assert(state_stack_i >= 0); \
+	BEGIN state_stack[state_stack_i]; \
+}
+
+#define COMPLEX_COMPONENT_BEGIN() { \
+	BEGIN REAL2_MODE_SIGN; \
+	PUSH_STATE(COMPLEX_MODE); \
+}
+
+#define COMPLEX_COMPONENT_DONE(base, sign, inf, num, den, mw) {\
+	complex_num.re_im[complex_state].base = base; \
+	complex_state++;
+	POP_STATE(); \
+}
+
+#define SET_RADIX(r) yylval.number.prefix.radix=r
+
+#define ENTER_NUMBER(rad, ex) { \
+	memset(&yylval, 0, sizeof(yylval)); \
+	memset(&scratch, 0, sizeof(scratch)); \
+	scratch.real.sign = plus; \
+	yylval.number.prefix.radix=rad; \
+	yylval.number.prefix.exactness=ex; \
+	switch(rad) { \
+	case r2: BEGIN COMPLEX_MODE; break; \
+	default: BEGIN REAL_MODE; }; \
+	}
+
+enum sign_tok get_sign(char s) {
+	switch(s){
+		case '+':
+			return plus;
+		case '-':
+			return minus;
+	}
+	return plus;
+} 
+
+void err() {
+	printf("Error");
+}
+
+
+
 %}
 
 /* Numbers */
@@ -20,11 +89,14 @@ UINTEGER8 {DIGIT8}+
 UINTEGER10 {DIGIT10}+
 UINTEGER16 {DIGIT16}+
 
-EXACTNESS (#(i|I)|#(e|E)){0,1}
+EX_I #(i|I)
+EX_E #(e|E)
+EXACTNESS1 {EX_I}|{EX_E}
+EXACTNESS {EXACTNESS1}{0,1}
 
 PREFIX2  {RADIX2}{EXACTNESS}|{EXACTNESS}{RADIX2}
 PREFIX8  {RADIX8}{EXACTNESS}|{EXACTNESS}{RADIX8}
-PREFIX10 {EXACTNESS}|{EXACTNESS}
+PREFIX10 {EXACTNESS}
 PREFIX16 {RADIX16}{EXACTNESS}|{EXACTNESS}{RADIX16}
 
 SIGN [+-]{0,1}
@@ -76,19 +148,92 @@ BOOLEAN #t|#T|#f|#F
 CHARACTERNAME nul|alarm|backspace|tab|linefeed|newline|vtab|page|return|esc|space|delete
 CHARACTER #\\{CHARACTERNAME}|#\\x{HEX_SCALAR}|#\\.
 
+RADIX10_START [0-9+-]
+
 %x STRING_MODE
+%x REAL_MODE
+%x REAL2_MODE_SIGN
+%x REAL2_MODE
+%x COMPLEX2_MODE
+%x COMPLEX_MODE
+%x REAL2_MODE_UREAL_DEN
+%x REAL2_MODE_DEN_B
+%x REAL2_MODE_DEN
+%x REAL2_MODE_NUM
 
 %%
-{NUM}/{DELIMETER}				{ printf("number, ");}
+	/* Check for numbers */
+
+ 	/* Is is RADIX2 */
+{RADIX2}{EX_I}			{ENTER_NUMBER(r2, i);}
+{EX_I}{RADIX2}			{ENTER_NUMBER(r2, i);}
+{RADIX2}{EX_E}			{ENTER_NUMBER(r2, e);}
+{EX_E}{RADIX2}			{ENTER_NUMBER(r2, e);}
+{RADIX2}/[01+-]			{ENTER_NUMBER(r2, d);}
+
+	/* Is radix 8 */
+{RADIX8}{EX_I}			{ENTER_NUMBER(r8, i);}
+{EX_I}{RADIX8}			{ENTER_NUMBER(r8, i);}
+{RADIX8}{EX_E}			{ENTER_NUMBER(r8, e);}
+{EX_E}{RADIX8}			{ENTER_NUMBER(r8, e);}
+{RADIX8}/[0-7+-]		{ENTER_NUMBER(r8, d);}
+
+	/* Is Radix 10 */
+{EX_I}{RADIX10_START}	{ENTER_NUMBER(r10, i);}
+{EX_E}{RADIX10_START}	{ENTER_NUMBER(r10, e);}
+{RADIX10_START}			{ENTER_NUMBER(r10, d);}
+
+	/* Is RADIX 16 */
+{RADIX16}{EX_I}			{ENTER_NUMBER(r16, i);}
+{EX_I}{RADIX16}			{ENTER_NUMBER(r16, i);}
+{RADIX16}{EX_E}			{ENTER_NUMBER(r16, e);}
+{EX_E}{RADIX16}			{ENTER_NUMBER(r16, e);}
+{RADIX16}/[0-9a-fA-F+-]	{ENTER_NUMBER(r16, d);}
+
+	/* COMPLEX_COMPONENT_DONE(base, sign, inf, num, den, mw) */
+	/* Pick that ripe, low-hanging fruit */
+<COMPLEX_MODE>[+-]?/[01]						{ 
+													if(complex_state > 1) err();
+													if(yyleng > 0) unput(yytext[0]);   
+													printf(" cc=%d ", complex_state);
+													COMPLEX_COMPONENT_BEGIN(); 
+												}
+<COMPLEX_MODE>[+-]i 							{ complex_state++; printf(",+-i,"); }
+<COMPLEX_MODE>i 								{ printf(",i,"); }
+<COMPLEX_MODE>{DELIMETER}						{ printf("Done complex"); }
+<COMPLEX_MODE>.									{printf("Error: Unknown token"); }
+
+	/* Pick out sign from real number */
+<REAL2_MODE_SIGN>[01]							{unput(yytext[0]); unput('+');}
+<REAL2_MODE_SIGN>[+-]/[01]						{printf(",sign=%c,", yytext[0]); BEGIN REAL2_MODE_NUM; }
+<REAL2_MODE_SIGN>[+-]naninf 					{printf(",%s,", yytext);
+												 COMPLEX_COMPONENT_DONE(2, get_sign(yytext[0]), inf, 0, 0, 0); }
+<REAL2_MODE_SIGN>.								{printf("err %d", (int)yytext[0]);}
+
+
+<REAL2_MODE_NUM>[01]+/\/						{printf(",num=%s,", yytext); BEGIN REAL2_MODE_DEN;}
+<REAL2_MODE_NUM>[01]+							{printf(",num=%s,", yytext); 
+												 COMPLEX_COMPONENT_DONE(2, get_sign(yytext[0]), na, num, 1, 0); }
+<REAL2_MODE_NUM>.								{printf("Unknown numerator");}
+
+<REAL2_MODE_DEN>\/								{BEGIN REAL2_MODE_DEN_B;}
+<REAL2_MODE_DEN>.								{printf(" Error in REAL2_MODE_DEN");}
+
+<REAL2_MODE_DEN_B>[01]+							{printf(",den=%s,", yytext); POP_STATE();}
+<REAL2_MODE_DEN_B>.								{printf("Error"); }	
+
+<REAL_MODE>.*									{printf("in num mode");}
+
+
 {IDENTIFIER}/{DELIMETER}		{ printf("identifier"); }
 {BOOLEAN}/{DELIMETER}			{ printf(" bool "); }
 {CHARACTER}/{DELIMETER}			{ printf(" CHARACTER "); }
 {STRING}						{ printf(" string "); }
-{DELIMETER}						{printf(" delim ");}
+{DELIMETER}						{ printf(" delim "); }
 #\(|,@|#'|#`|#,|#,@				{printf(" compound_lexeme ");}
 [()\[\]'`,.]					{ printf(" simple_lexeme "); }
 [ \t]+							/* ignore space */
-.								{ printf("Unknown token"); }
+.							    { printf("Unknown token"); }
 
 <STRING_MODE>[^"\\]*								{ printf("any string char, "); }
 <STRING_MODE>\\\"|\\\\|\\a|\\b|\\f|\\n|\\r|\\t|\\v	{ printf("escape, "); }

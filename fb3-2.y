@@ -2,14 +2,18 @@
 #  include <stdio.h>
 #  include <stdlib.h>
 #  include "fb3-2.h"
+
+temp_parse scratch;
+
 %}
 
+%union {
+	number_tok number;
+	int a;
+}
+
+%token <number> NUMBER
 %token EOL
-%token IDENTIFIER
-%token BOOLEAN
-%token NUMBER
-%token CHARACTER
-%token STRING
 
 %%
 

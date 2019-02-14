@@ -10,10 +10,10 @@
 typedef uint8_t bool;
 
 enum radix_tok		{r2, r8, r10, r16};
-enum exactness_tok	{i, e};
+enum exactness_tok	{i, e, d};
 enum sign_tok		{plus, minus};
 enum base_tok		{b2, b8, b10, b16};
-enum inf_tok		{inf_pos, inf_neg};
+enum inf_tok		{inf_pos, inf_neg, na, inf};
 
 typedef struct {
 	bool empty;
@@ -41,8 +41,12 @@ typedef struct {
 
 typedef struct {
 	prefix_tok	prefix;
-	real_tok 	real;
-	real_tok 	imag;
+	real_tok 	re_im;
 }number_tok;
+
+typedef struct{
+	real_tok real;
+	int counter;
+} temp_parse;
 
 #endif

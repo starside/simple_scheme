@@ -68,7 +68,10 @@
 #  include <stdlib.h>
 #  include "fb3-2.h"
 
-#line 72 "fb3-2.tab.c" /* yacc.c:339  */
+temp_parse scratch;
+
+
+#line 75 "fb3-2.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -103,18 +106,23 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    EOL = 258,
-    IDENTIFIER = 259,
-    BOOLEAN = 260,
-    NUMBER = 261,
-    CHARACTER = 262,
-    STRING = 263
+    NUMBER = 258,
+    EOL = 259
   };
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+typedef union YYSTYPE YYSTYPE;
+union YYSTYPE
+{
+#line 10 "fb3-2.y" /* yacc.c:355  */
+
+	number_tok number;
+	int a;
+
+#line 125 "fb3-2.tab.c" /* yacc.c:355  */
+};
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -128,7 +136,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 132 "fb3-2.tab.c" /* yacc.c:358  */
+#line 140 "fb3-2.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -370,10 +378,10 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   3
+#define YYLAST   4
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  9
+#define YYNTOKENS  5
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  2
 /* YYNRULES -- Number of rules.  */
@@ -384,7 +392,7 @@ union yyalloc
 /* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
    by yylex, with out-of-bounds checking.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   263
+#define YYMAXUTOK   259
 
 #define YYTRANSLATE(YYX)                                                \
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -418,15 +426,14 @@ static const yytype_uint8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
-       5,     6,     7,     8
+       2,     2,     2,     2,     2,     2,     1,     2,     3,     4
 };
 
 #if YYDEBUG
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    16,    16,    17
+       0,    20,    20,    21
 };
 #endif
 
@@ -435,8 +442,7 @@ static const yytype_uint8 yyrline[] =
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "$end", "error", "$undefined", "EOL", "IDENTIFIER", "BOOLEAN", "NUMBER",
-  "CHARACTER", "STRING", "$accept", "boot", YY_NULLPTR
+  "$end", "error", "$undefined", "NUMBER", "EOL", "$accept", "boot", YY_NULLPTR
 };
 #endif
 
@@ -445,7 +451,7 @@ static const char *const yytname[] =
    (internal) symbol number NUM (which must be that of a token).  */
 static const yytype_uint16 yytoknum[] =
 {
-       0,   256,   257,   258,   259,   260,   261,   262,   263
+       0,   256,   257,   258,   259
 };
 # endif
 
@@ -491,25 +497,25 @@ static const yytype_int8 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_uint8 yytable[] =
 {
-       2,     0,     0,     3
+       2,     0,     0,     0,     3
 };
 
 static const yytype_int8 yycheck[] =
 {
-       0,    -1,    -1,     3
+       0,    -1,    -1,    -1,     4
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
      symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,    10,     0,     3
+       0,     6,     0,     4
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,     9,    10,    10
+       0,     5,     6,     6
 };
 
   /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
@@ -1192,7 +1198,7 @@ yyreduce:
   switch (yyn)
     {
       
-#line 1196 "fb3-2.tab.c" /* yacc.c:1646  */
+#line 1202 "fb3-2.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1420,7 +1426,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 22 "fb3-2.y" /* yacc.c:1906  */
+#line 26 "fb3-2.y" /* yacc.c:1906  */
 
 
 yyerror(char *s)

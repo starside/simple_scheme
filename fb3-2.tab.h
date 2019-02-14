@@ -45,18 +45,23 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    EOL = 258,
-    IDENTIFIER = 259,
-    BOOLEAN = 260,
-    NUMBER = 261,
-    CHARACTER = 262,
-    STRING = 263
+    NUMBER = 258,
+    EOL = 259
   };
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+typedef union YYSTYPE YYSTYPE;
+union YYSTYPE
+{
+#line 10 "fb3-2.y" /* yacc.c:1909  */
+
+	number_tok number;
+	int a;
+
+#line 64 "fb3-2.tab.h" /* yacc.c:1909  */
+};
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
