@@ -41,7 +41,7 @@ typedef struct {
 
 typedef struct {
 	prefix_tok	prefix;
-	real_tok 	re_im;
+	real_tok 	re_im[2];
 }number_tok;
 
 typedef struct{
