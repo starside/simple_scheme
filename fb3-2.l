@@ -16,6 +16,22 @@ int state_stack[STACK_SIZE];
 
 int complex_state = 0;
 number_tok complex_num;
+real_tok real_num;
+
+enum sign_tok real_get_sign(char c) {
+    assert(c == '+' || c == '-');
+    switch(c) {
+        case '+':
+            return plus;
+        case '-':
+            return minus;
+    };
+    return sign_err;
+}
+
+void ClearRealNum() {
+    memset(&real_num, 0, sizeof(real_num));
+}
 
 void PUSH_STATE(int s) {
     printf("state_stack=%d, STACK_SIZE=%d\n", state_stack_i, STACK_SIZE); 
@@ -32,14 +48,7 @@ void POP_STATE() {
 
 #define COMPLEX_COMPONENT_BEGIN() {\
     PUSH_STATE(COMPLEX_MODE);\
-    BEGIN REAL2_MODE_SIGN;\
-}
-
-void COMPLEX_COMPONENT_DONE(enum base_tok base, enum sign_tok sign, 
-                enum inf_tok inf, uint64_t num, uint64_t den, uint32_t mw) {
-    complex_num.re_im[complex_state].base = base; 
-    complex_state++; 
-    POP_STATE(); 
+    BEGIN REAL2_MODE;\
 }
 
 #define SET_RADIX(r) yylval.number.prefix.radix=r
@@ -192,38 +201,91 @@ RADIX10_START [0-9+-]
 {EX_E}{RADIX16}         {ENTER_NUMBER(r16, e);}
 {RADIX16}/[0-9a-fA-F+-] {ENTER_NUMBER(r16, d);}
 
-    /* COMPLEX_COMPONENT_DONE(base, sign, inf, num, den, mw) */
     /* Pick that ripe, low-hanging fruit */
 <COMPLEX_MODE>[+-]?/[01]                        { 
-                                                    if(complex_state > 1) err();
+                                                    switch(complex_state) {
+                                                        case 0:
+                                                            memset(&complex_num, 0, sizeof(complex_num));
+                                                            break;
+                                                        case 1:
+                                                            break;                                        
+                                                        default:
+                                                            err();
+                                                    };
                                                     if(yyleng > 0) unput(yytext[0]);   
-                                                    printf(" cc=%d ", complex_state);
+                                                    printf(" complex_state=%d ", complex_state);
                                                     COMPLEX_COMPONENT_BEGIN(); 
                                                 }
 <COMPLEX_MODE>[+-]i                             { complex_state++; printf(",+-i,"); }
 <COMPLEX_MODE>i                                 { printf(",i,"); }
 <COMPLEX_MODE>{DELIMETER}                       { printf("Done complex"); }
-<COMPLEX_MODE>.                                 {printf("Error: Unknown token"); }
+<COMPLEX_MODE>.                                 { printf("Error: Unknown token"); }
 
-    /* Pick out sign from real number */
-<REAL2_MODE_SIGN>[01]                           {unput(yytext[0]); unput('+');}
-<REAL2_MODE_SIGN>[+-]/[01]                      {printf(",sign=%c,", yytext[0]); BEGIN REAL2_MODE_NUM; }
-<REAL2_MODE_SIGN>[+-]naninf                     {printf(",%s,", yytext);
-                                                 COMPLEX_COMPONENT_DONE(2, get_sign(yytext[0]), inf, 0, 0, 0); }
-<REAL2_MODE_SIGN>.                              {printf("err %d", (int)yytext[0]);}
+    /* Real2 mode entry point */
+<REAL2_MODE>.                                   {   
+                                                    // Zero out real_num and set the base to 2
+                                                    ClearRealNum(); 
+                                                    real_num.base = r2;
+
+                                                    // Do not consume byte in the entry point
+                                                    unput(yytext[0]); 
+                                                    BEGIN REAL2_MODE_SIGN; 
+                                                }
+    /* Pick out sign from real number, as well as nan and inf */
+<REAL2_MODE_SIGN>[01]                           {
+                                                    // No sign interpreted as +
+                                                    unput(yytext[0]);
+                                                    unput('+');
+                                                }
+<REAL2_MODE_SIGN>[+-]/[01]                      {
+                                                    real_num.sign = real_get_sign(yytext[0]);
+                                                    // Read in numerator
+                                                    BEGIN REAL2_MODE_NUM; 
+                                                }
+<REAL2_MODE_SIGN>[+-]nan\.0                     {
+                                                    real_num.sign = real_get_sign(yytext[0]);
+                                                    real_num.inf = nan;
+                                                    // Done reading real number
+                                                    POP_STATE();
+                                                }
+<REAL2_MODE_SIGN>[+-]inf\.0                     {
+                                                    real_num.sign = real_get_sign(yytext[0]);
+                                                    real_num.inf = inf;
+                                                    // Done reading real number
+                                                    POP_STATE();
+                                                }                                                
+<REAL2_MODE_SIGN>.                              {
+                                                    printf("err %d", (int)yytext[0]);
+                                                }
 
 
-<REAL2_MODE_NUM>[01]+/\/                        {printf(",num=%s,", yytext); BEGIN REAL2_MODE_DEN;}
+<REAL2_MODE_NUM>[01]+/\/                {
+                                           printf(",num=%s,", yytext); 
+                                           real_num.ureal.numerator = strtoull(yytext, NULL, 2);
+                                           // Expect Denominator to follow
+                                           BEGIN REAL2_MODE_DEN;
+                                        }
 <REAL2_MODE_NUM>[01]+                   {
-                                            printf(",num=%s,", yytext); 
-                                            COMPLEX_COMPONENT_DONE(2, get_sign(yytext[0]), na, strtoull(yytext, NULL, 2), 1, 0);
+                                            printf(",num=%s,", yytext);
+                                            real_num.ureal.numerator = strtoull(yytext, NULL, 2);
+                                            // Denominator implicit 1.  Done
+                                            real_num.ureal.numerator = 1;
+                                            POP_STATE();
                                         }
 <REAL2_MODE_NUM>.                               {printf("Unknown numerator");}
 
-<REAL2_MODE_DEN>\/                              {BEGIN REAL2_MODE_DEN_B;}
-<REAL2_MODE_DEN>.                               {printf(" Error in REAL2_MODE_DEN");}
+<REAL2_MODE_DEN>\/                      {
+                                            // Consume the /
+                                            BEGIN REAL2_MODE_DEN_B;
+                                        }
+<REAL2_MODE_DEN>.                       {printf(" Error in REAL2_MODE_DEN");}
 
-<REAL2_MODE_DEN_B>[01]+                         {printf(",den=%s,", yytext); POP_STATE();}
+<REAL2_MODE_DEN_B>[01]+                 {
+                                            printf(",den=%s,", yytext);
+                                            // Read denominator.  Done 
+                                            real_num.ureal.denominator = strtoull(yytext, NULL, 2);
+                                            POP_STATE();
+                                        }
 <REAL2_MODE_DEN_B>.                             {printf("Error"); } 
 
 <REAL_MODE>.*                                   {printf("in num mode");}

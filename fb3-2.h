@@ -11,9 +11,9 @@ typedef uint8_t bool;
 
 enum radix_tok		{r2, r8, r10, r16};
 enum exactness_tok	{i, e, d};
-enum sign_tok		{plus, minus};
+enum sign_tok		{plus, minus, sign_err};
 enum base_tok		{b2, b8, b10, b16};
-enum inf_tok		{inf_pos, inf_neg, na, inf};
+enum naninf_tok		{na, inf, nan};
 
 typedef struct {
 	bool empty;
@@ -28,15 +28,15 @@ typedef struct
 
 typedef struct 
 {
-	uint64_t num, den;
+	uint64_t numerator, denominator;
 	mantissa_tok mantissa_width;
 }ureal_tok;
 
 typedef struct {
 	enum base_tok	base;
 	enum sign_tok 	sign;
-	enum inf_tok	inf;
-	ureal_tok 		num;
+	enum naninf_tok	inf;
+	ureal_tok 		ureal;
 }real_tok;
 
 typedef struct {
