@@ -40,10 +40,35 @@ void PUSH_STATE(int s) {
     state_stack_i++; 
 }
 
-void POP_STATE() { 
-    state_stack_i--; 
-    assert(state_stack_i >= 0); 
-    BEGIN state_stack[state_stack_i]; 
+void print_realnum() {
+    char sign;
+    switch(real_num.sign) {
+        case plus:
+            sign = '+';
+            break;
+        case minus:
+            sign = '-';
+            break;
+        default:
+            sign = 'E';
+    };
+    printf("DEBUG: Real number is %c %u / %u", sign, 
+            real_num.ureal.numerator, real_num.ureal.denominator);
+}
+
+#define POP_STATE() {                           \
+    switch(YY_START) {                           \
+        case REAL2_MODE:                        \
+        case REAL2_MODE_SIGN:                   \
+        case REAL2_MODE_NUM:                    \
+        case REAL2_MODE_DEN:                    \
+        case REAL2_MODE_DEN_B:                  \
+            print_realnum();                    \
+            break;                              \
+    };                                          \
+    state_stack_i--;                            \
+    assert(state_stack_i >= 0);                 \
+    BEGIN state_stack[state_stack_i];           \
 }
 
 #define COMPLEX_COMPONENT_BEGIN() {\
@@ -53,15 +78,20 @@ void POP_STATE() {
 
 #define SET_RADIX(r) yylval.number.prefix.radix=r
 
-#define ENTER_NUMBER(rad, ex) { \
-    memset(&yylval, 0, sizeof(yylval)); \
-    memset(&scratch, 0, sizeof(scratch)); \
-    scratch.real.sign = plus; \
-    yylval.number.prefix.radix=rad; \
-    yylval.number.prefix.exactness=ex; \
-    switch(rad) { \
-    case r2: BEGIN COMPLEX_MODE; break; \
-    default: BEGIN REAL_MODE; }; \
+#define ENTER_NUMBER(rad, ex) {             \
+    memset(&yylval, 0, sizeof(yylval));     \
+    memset(&scratch, 0, sizeof(scratch));   \
+    scratch.real.sign = plus;               \
+    yylval.number.prefix.radix=rad;         \
+    yylval.number.prefix.exactness=ex;      \
+    switch(rad) {                           \
+        case r2:                            \
+            PUSH_STATE(INITIAL);            \
+            BEGIN REAL2_MODE;               \
+            break;                          \
+        default:                            \
+            BEGIN REAL_MODE;                \
+        };                                  \
     }
 
 enum sign_tok get_sign(char s) {
@@ -237,6 +267,7 @@ RADIX10_START [0-9+-]
                                                     unput(yytext[0]);
                                                     unput('+');
                                                 }
+    /* REAL2_MODE_SIGN State */
 <REAL2_MODE_SIGN>[+-]/[01]                      {
                                                     real_num.sign = real_get_sign(yytext[0]);
                                                     // Read in numerator
@@ -258,30 +289,28 @@ RADIX10_START [0-9+-]
                                                     printf("err %d", (int)yytext[0]);
                                                 }
 
-
-<REAL2_MODE_NUM>[01]+/\/                {
-                                           printf(",num=%s,", yytext); 
+    /* REAL2_MOD_NUM state.  Read in numerator */
+<REAL2_MODE_NUM>[01]+/\/                { 
                                            real_num.ureal.numerator = strtoull(yytext, NULL, 2);
                                            // Expect Denominator to follow
                                            BEGIN REAL2_MODE_DEN;
                                         }
 <REAL2_MODE_NUM>[01]+                   {
-                                            printf(",num=%s,", yytext);
                                             real_num.ureal.numerator = strtoull(yytext, NULL, 2);
                                             // Denominator implicit 1.  Done
-                                            real_num.ureal.numerator = 1;
+                                            real_num.ureal.denominator = 1;
                                             POP_STATE();
                                         }
-<REAL2_MODE_NUM>.                               {printf("Unknown numerator");}
-
+<REAL2_MODE_NUM>.                       {printf("Unknown numerator");}
+    /* REAL2_mode_DEN State to consume residual / */
 <REAL2_MODE_DEN>\/                      {
                                             // Consume the /
                                             BEGIN REAL2_MODE_DEN_B;
                                         }
+    /* REAL2_MODE_DEN Read in denominator */
 <REAL2_MODE_DEN>.                       {printf(" Error in REAL2_MODE_DEN");}
 
 <REAL2_MODE_DEN_B>[01]+                 {
-                                            printf(",den=%s,", yytext);
                                             // Read denominator.  Done 
                                             real_num.ureal.denominator = strtoull(yytext, NULL, 2);
                                             POP_STATE();

@@ -704,10 +704,35 @@ void PUSH_STATE(int s) {
     state_stack_i++; 
 }
 
-void POP_STATE() { 
-    state_stack_i--; 
-    assert(state_stack_i >= 0); 
-    BEGIN state_stack[state_stack_i]; 
+void print_realnum() {
+    char sign;
+    switch(real_num.sign) {
+        case plus:
+            sign = '+';
+            break;
+        case minus:
+            sign = '-';
+            break;
+        default:
+            sign = 'E';
+    };
+    printf("DEBUG: Real number is %c %u / %u", sign, 
+            real_num.ureal.numerator, real_num.ureal.denominator);
+}
+
+#define POP_STATE() {                           \
+    switch(YY_START) {                           \
+        case REAL2_MODE:                        \
+        case REAL2_MODE_SIGN:                   \
+        case REAL2_MODE_NUM:                    \
+        case REAL2_MODE_DEN:                    \
+        case REAL2_MODE_DEN_B:                  \
+            print_realnum();                    \
+            break;                              \
+    };                                          \
+    state_stack_i--;                            \
+    assert(state_stack_i >= 0);                 \
+    BEGIN state_stack[state_stack_i];           \
 }
 
 #define COMPLEX_COMPONENT_BEGIN() {\
@@ -717,15 +742,20 @@ void POP_STATE() {
 
 #define SET_RADIX(r) yylval.number.prefix.radix=r
 
-#define ENTER_NUMBER(rad, ex) { \
-    memset(&yylval, 0, sizeof(yylval)); \
-    memset(&scratch, 0, sizeof(scratch)); \
-    scratch.real.sign = plus; \
-    yylval.number.prefix.radix=rad; \
-    yylval.number.prefix.exactness=ex; \
-    switch(rad) { \
-    case r2: BEGIN COMPLEX_MODE; break; \
-    default: BEGIN REAL_MODE; }; \
+#define ENTER_NUMBER(rad, ex) {             \
+    memset(&yylval, 0, sizeof(yylval));     \
+    memset(&scratch, 0, sizeof(scratch));   \
+    scratch.real.sign = plus;               \
+    yylval.number.prefix.radix=rad;         \
+    yylval.number.prefix.exactness=ex;      \
+    switch(rad) {                           \
+        case r2:                            \
+            PUSH_STATE(INITIAL);            \
+            BEGIN REAL2_MODE;               \
+            break;                          \
+        default:                            \
+            BEGIN REAL_MODE;                \
+        };                                  \
     }
 
 enum sign_tok get_sign(char s) {
@@ -744,12 +774,12 @@ void err() {
 
 
 
-#line 748 "fb3-2.lex.c"
+#line 778 "fb3-2.lex.c"
 /* Numbers */
 /* identifier token */
 /* string token */
 
-#line 753 "fb3-2.lex.c"
+#line 783 "fb3-2.lex.c"
 
 #define INITIAL 0
 #define STRING_MODE 1
@@ -976,13 +1006,13 @@ YY_DECL
 		}
 
 	{
-#line 175 "fb3-2.l"
+#line 205 "fb3-2.l"
 
-#line 177 "fb3-2.l"
+#line 207 "fb3-2.l"
     /* Check for numbers */
 
     /* Is is RADIX2 */
-#line 986 "fb3-2.lex.c"
+#line 1016 "fb3-2.lex.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1051,22 +1081,22 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 180 "fb3-2.l"
+#line 210 "fb3-2.l"
 {ENTER_NUMBER(r2, i);}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 181 "fb3-2.l"
+#line 211 "fb3-2.l"
 {ENTER_NUMBER(r2, i);}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 182 "fb3-2.l"
+#line 212 "fb3-2.l"
 {ENTER_NUMBER(r2, e);}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 183 "fb3-2.l"
+#line 213 "fb3-2.l"
 {ENTER_NUMBER(r2, e);}
 	YY_BREAK
 case 5:
@@ -1074,28 +1104,28 @@ case 5:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 184 "fb3-2.l"
+#line 214 "fb3-2.l"
 {ENTER_NUMBER(r2, d);}
 	YY_BREAK
 /* Is radix 8 */
 case 6:
 YY_RULE_SETUP
-#line 187 "fb3-2.l"
+#line 217 "fb3-2.l"
 {ENTER_NUMBER(r8, i);}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 188 "fb3-2.l"
+#line 218 "fb3-2.l"
 {ENTER_NUMBER(r8, i);}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 189 "fb3-2.l"
+#line 219 "fb3-2.l"
 {ENTER_NUMBER(r8, e);}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 190 "fb3-2.l"
+#line 220 "fb3-2.l"
 {ENTER_NUMBER(r8, e);}
 	YY_BREAK
 case 10:
@@ -1103,44 +1133,44 @@ case 10:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 191 "fb3-2.l"
+#line 221 "fb3-2.l"
 {ENTER_NUMBER(r8, d);}
 	YY_BREAK
 /* Is Radix 10 */
 case 11:
 YY_RULE_SETUP
-#line 194 "fb3-2.l"
+#line 224 "fb3-2.l"
 {ENTER_NUMBER(r10, i);}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 195 "fb3-2.l"
+#line 225 "fb3-2.l"
 {ENTER_NUMBER(r10, e);}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 196 "fb3-2.l"
+#line 226 "fb3-2.l"
 {ENTER_NUMBER(r10, d);}
 	YY_BREAK
 /* Is RADIX 16 */
 case 14:
 YY_RULE_SETUP
-#line 199 "fb3-2.l"
+#line 229 "fb3-2.l"
 {ENTER_NUMBER(r16, i);}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 200 "fb3-2.l"
+#line 230 "fb3-2.l"
 {ENTER_NUMBER(r16, i);}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 201 "fb3-2.l"
+#line 231 "fb3-2.l"
 {ENTER_NUMBER(r16, e);}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 202 "fb3-2.l"
+#line 232 "fb3-2.l"
 {ENTER_NUMBER(r16, e);}
 	YY_BREAK
 case 18:
@@ -1148,7 +1178,7 @@ case 18:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 203 "fb3-2.l"
+#line 233 "fb3-2.l"
 {ENTER_NUMBER(r16, d);}
 	YY_BREAK
 /* Pick that ripe, low-hanging fruit */
@@ -1157,7 +1187,7 @@ case 19:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 206 "fb3-2.l"
+#line 236 "fb3-2.l"
 { 
                                                     switch(complex_state) {
                                                         case 0:
@@ -1175,29 +1205,29 @@ YY_RULE_SETUP
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 220 "fb3-2.l"
+#line 250 "fb3-2.l"
 { complex_state++; printf(",+-i,"); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 221 "fb3-2.l"
+#line 251 "fb3-2.l"
 { printf(",i,"); }
 	YY_BREAK
 case 22:
 /* rule 22 can match eol */
 YY_RULE_SETUP
-#line 222 "fb3-2.l"
+#line 252 "fb3-2.l"
 { printf("Done complex"); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 223 "fb3-2.l"
+#line 253 "fb3-2.l"
 { printf("Error: Unknown token"); }
 	YY_BREAK
 /* Real2 mode entry point */
 case 24:
 YY_RULE_SETUP
-#line 226 "fb3-2.l"
+#line 256 "fb3-2.l"
 {   
                                                     // Zero out real_num and set the base to 2
                                                     ClearRealNum(); 
@@ -1211,19 +1241,20 @@ YY_RULE_SETUP
 /* Pick out sign from real number, as well as nan and inf */
 case 25:
 YY_RULE_SETUP
-#line 236 "fb3-2.l"
+#line 266 "fb3-2.l"
 {
                                                     // No sign interpreted as +
                                                     unput(yytext[0]);
                                                     unput('+');
                                                 }
 	YY_BREAK
+/* REAL2_MODE_SIGN State */
 case 26:
 *yy_cp = (yy_hold_char); /* undo effects of setting up yytext */
 (yy_c_buf_p) = yy_cp = yy_bp + 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 241 "fb3-2.l"
+#line 272 "fb3-2.l"
 {
                                                     real_num.sign = real_get_sign(yytext[0]);
                                                     // Read in numerator
@@ -1232,7 +1263,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 246 "fb3-2.l"
+#line 277 "fb3-2.l"
 {
                                                     real_num.sign = real_get_sign(yytext[0]);
                                                     real_num.inf = nan;
@@ -1242,7 +1273,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 252 "fb3-2.l"
+#line 283 "fb3-2.l"
 {
                                                     real_num.sign = real_get_sign(yytext[0]);
                                                     real_num.inf = inf;
@@ -1252,19 +1283,19 @@ YY_RULE_SETUP
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 258 "fb3-2.l"
+#line 289 "fb3-2.l"
 {
                                                     printf("err %d", (int)yytext[0]);
                                                 }
 	YY_BREAK
+/* REAL2_MOD_NUM state.  Read in numerator */
 case 30:
 *yy_cp = (yy_hold_char); /* undo effects of setting up yytext */
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 263 "fb3-2.l"
-{
-                                           printf(",num=%s,", yytext); 
+#line 294 "fb3-2.l"
+{ 
                                            real_num.ureal.numerator = strtoull(yytext, NULL, 2);
                                            // Expect Denominator to follow
                                            BEGIN REAL2_MODE_DEN;
@@ -1272,38 +1303,38 @@ YY_RULE_SETUP
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 269 "fb3-2.l"
+#line 299 "fb3-2.l"
 {
-                                            printf(",num=%s,", yytext);
                                             real_num.ureal.numerator = strtoull(yytext, NULL, 2);
                                             // Denominator implicit 1.  Done
-                                            real_num.ureal.numerator = 1;
+                                            real_num.ureal.denominator = 1;
                                             POP_STATE();
                                         }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 276 "fb3-2.l"
+#line 305 "fb3-2.l"
 {printf("Unknown numerator");}
 	YY_BREAK
+/* REAL2_mode_DEN State to consume residual / */
 case 33:
 YY_RULE_SETUP
-#line 278 "fb3-2.l"
+#line 307 "fb3-2.l"
 {
                                             // Consume the /
                                             BEGIN REAL2_MODE_DEN_B;
                                         }
 	YY_BREAK
+/* REAL2_MODE_DEN Read in denominator */
 case 34:
 YY_RULE_SETUP
-#line 282 "fb3-2.l"
+#line 312 "fb3-2.l"
 {printf(" Error in REAL2_MODE_DEN");}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 284 "fb3-2.l"
+#line 314 "fb3-2.l"
 {
-                                            printf(",den=%s,", yytext);
                                             // Read denominator.  Done 
                                             real_num.ureal.denominator = strtoull(yytext, NULL, 2);
                                             POP_STATE();
@@ -1311,12 +1342,12 @@ YY_RULE_SETUP
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 290 "fb3-2.l"
+#line 319 "fb3-2.l"
 {printf("Error"); } 
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 292 "fb3-2.l"
+#line 321 "fb3-2.l"
 {printf("in num mode");}
 	YY_BREAK
 case 38:
@@ -1326,7 +1357,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 295 "fb3-2.l"
+#line 324 "fb3-2.l"
 { printf("identifier"); }
 	YY_BREAK
 case 39:
@@ -1336,7 +1367,7 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 296 "fb3-2.l"
+#line 325 "fb3-2.l"
 { printf(" bool "); }
 	YY_BREAK
 case 40:
@@ -1346,80 +1377,80 @@ YY_LINENO_REWIND_TO(yy_cp - 1);
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 297 "fb3-2.l"
+#line 326 "fb3-2.l"
 { printf(" CHARACTER "); }
 	YY_BREAK
 case 41:
 /* rule 41 can match eol */
 YY_RULE_SETUP
-#line 298 "fb3-2.l"
+#line 327 "fb3-2.l"
 { printf(" string "); }
 	YY_BREAK
 case 42:
 /* rule 42 can match eol */
 YY_RULE_SETUP
-#line 299 "fb3-2.l"
+#line 328 "fb3-2.l"
 { printf(" delim "); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 300 "fb3-2.l"
+#line 329 "fb3-2.l"
 {printf(" compound_lexeme ");}
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 301 "fb3-2.l"
+#line 330 "fb3-2.l"
 { printf(" simple_lexeme "); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 302 "fb3-2.l"
+#line 331 "fb3-2.l"
 /* ignore space */
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 303 "fb3-2.l"
+#line 332 "fb3-2.l"
 { printf("Unknown token"); }
 	YY_BREAK
 case 47:
 /* rule 47 can match eol */
 YY_RULE_SETUP
-#line 305 "fb3-2.l"
+#line 334 "fb3-2.l"
 { printf("any string char, "); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 306 "fb3-2.l"
+#line 335 "fb3-2.l"
 { printf("escape, "); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 307 "fb3-2.l"
+#line 336 "fb3-2.l"
 { printf("Hex Scalar, "); }
 	YY_BREAK
 case 50:
 /* rule 50 can match eol */
 YY_RULE_SETUP
-#line 308 "fb3-2.l"
+#line 337 "fb3-2.l"
 /* Absorb whitespace */
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 309 "fb3-2.l"
+#line 338 "fb3-2.l"
 {   printf("END STRING_MODE"); 
                                     BEGIN INITIAL;}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 311 "fb3-2.l"
+#line 340 "fb3-2.l"
 { printf("wut?"); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 312 "fb3-2.l"
+#line 341 "fb3-2.l"
 ECHO;
 	YY_BREAK
-#line 1423 "fb3-2.lex.c"
+#line 1454 "fb3-2.lex.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRING_MODE):
 case YY_STATE_EOF(REAL_MODE):
@@ -2446,6 +2477,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 312 "fb3-2.l"
+#line 341 "fb3-2.l"
 
 
