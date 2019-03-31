@@ -1,5 +1,6 @@
 /* just like Unix wc */
 %option yylineno
+%option stack
 
 %{
 #include <stdlib.h>
@@ -9,10 +10,6 @@
 #include "fb3-2.tab.h"
 
 extern temp_parse scratch;
-
-#define STACK_SIZE 10
-int state_stack_i = 0;
-int state_stack[STACK_SIZE];
 
 int complex_state = 0;
 number_tok complex_num;
@@ -33,13 +30,6 @@ void ClearRealNum() {
     memset(&real_num, 0, sizeof(real_num));
 }
 
-void PUSH_STATE(int s) {
-    printf("state_stack=%d, STACK_SIZE=%d\n", state_stack_i, STACK_SIZE); 
-    assert(state_stack_i < STACK_SIZE); 
-    state_stack[state_stack_i] = s; 
-    state_stack_i++; 
-}
-
 void print_realnum() {
     char sign;
     switch(real_num.sign) {
@@ -52,31 +42,31 @@ void print_realnum() {
         default:
             sign = 'E';
     };
-    printf("DEBUG: Real number is %c %u / %u", sign, 
+    switch(real_num.inf){
+        case inf:
+            printf("DEBUG: Real number is %cinf\n", sign);
+            break;
+        case nan:
+            printf("DEBUG: Real number is %cnan\n", sign);
+            break;
+        default:
+            printf("DEBUG: Real number is %c %u / %u", sign, 
             real_num.ureal.numerator, real_num.ureal.denominator);
-}
-
-#define POP_STATE() {                           \
-    switch(YY_START) {                           \
-        case REAL2_MODE:                        \
-        case REAL2_MODE_SIGN:                   \
-        case REAL2_MODE_NUM:                    \
-        case REAL2_MODE_DEN:                    \
-        case REAL2_MODE_DEN_B:                  \
-            print_realnum();                    \
-            break;                              \
-    };                                          \
-    state_stack_i--;                            \
-    assert(state_stack_i >= 0);                 \
-    BEGIN state_stack[state_stack_i];           \
+    };
 }
 
 #define COMPLEX_COMPONENT_BEGIN() {\
-    PUSH_STATE(COMPLEX_MODE);\
+    yy_push_state(COMPLEX_MODE);\
     BEGIN REAL2_MODE;\
 }
 
+#define PUSH_STATE(s) yy_push_state(s)
+
+#define POP_STATE() yy_pop_state();
+
 #define SET_RADIX(r) yylval.number.prefix.radix=r
+
+#define NOP() unput(yytext[0])
 
 #define ENTER_NUMBER(rad, ex) {             \
     memset(&yylval, 0, sizeof(yylval));     \
@@ -86,8 +76,7 @@ void print_realnum() {
     yylval.number.prefix.exactness=ex;      \
     switch(rad) {                           \
         case r2:                            \
-            PUSH_STATE(INITIAL);            \
-            BEGIN REAL2_MODE;               \
+            PUSH_STATE(COMPLEX_MODE_COMP1); \
             break;                          \
         default:                            \
             BEGIN REAL_MODE;                \
@@ -201,6 +190,8 @@ RADIX10_START [0-9+-]
 %x REAL2_MODE_DEN_B
 %x REAL2_MODE_DEN
 %x REAL2_MODE_NUM
+%x COMPLEX_MODE_COMP1
+%x COMPLEX_MODE_COMP1_I
 
 %%
     /* Check for numbers */
@@ -251,6 +242,33 @@ RADIX10_START [0-9+-]
 <COMPLEX_MODE>{DELIMETER}                       { printf("Done complex"); }
 <COMPLEX_MODE>.                                 { printf("Error: Unknown token"); }
 
+    /* Complex component 1 entry point */
+<COMPLEX_MODE_COMP1>.    {
+        NOP();
+        // Zero out complex number
+        memset(&complex_num, 0, sizeof(complex_num));
+        PUSH_STATE(COMPLEX_MODE_COMP1_I);
+        PUSH_STATE(REAL2_MODE);
+    }
+
+<COMPLEX_MODE_COMP1_I>i {
+    print_realnum();
+    printf("DEBUG: Done reading complex number, only 1 component\n");
+    POP_STATE();
+}
+<COMPLEX_MODE_COMP1_I>{DELIMETER} {
+    print_realnum();
+    POP_STATE();
+}
+<COMPLEX_MODE_COMP1_I>[+-] {
+    printf("DEBUG: There is another component to read!\n");
+}
+<COMPLEX_MODE_COMP1_I>. {
+    printf("Error of some sort!");
+    POP_STATE();
+}
+
+
     /* Real2 mode entry point */
 <REAL2_MODE>.                                   {   
                                                     // Zero out real_num and set the base to 2
@@ -258,7 +276,7 @@ RADIX10_START [0-9+-]
                                                     real_num.base = r2;
 
                                                     // Do not consume byte in the entry point
-                                                    unput(yytext[0]); 
+                                                    NOP(); 
                                                     BEGIN REAL2_MODE_SIGN; 
                                                 }
     /* Pick out sign from real number, as well as nan and inf */
