@@ -192,6 +192,7 @@ RADIX10_START [0-9+-]
 %x REAL2_MODE_NUM
 %x COMPLEX_MODE_COMP1
 %x COMPLEX_MODE_COMP1_I
+%x COMPLEX_MODE_COMP2
 
 %%
     /* Check for numbers */
@@ -243,6 +244,13 @@ RADIX10_START [0-9+-]
 <COMPLEX_MODE>.                                 { printf("Error: Unknown token"); }
 
     /* Complex component 1 entry point */
+<COMPLEX_MODE_COMP1>[+-]i   {
+        // Zero out complex number
+        memset(&complex_num, 0, sizeof(complex_num));
+        complex_num.re_im[1].ureal.numerator = 1;
+        complex_num.re_im[1].sign = real_get_sign(yytext[0]);
+        POP_STATE();
+    }
 <COMPLEX_MODE_COMP1>.    {
         NOP();
         // Zero out complex number
@@ -253,18 +261,33 @@ RADIX10_START [0-9+-]
 
 <COMPLEX_MODE_COMP1_I>i {
     print_realnum();
-    printf("DEBUG: Done reading complex number, only 1 component\n");
+    printf("DEBUG:COMPLEX_MODE_COMP1_I Number is imaginary\n");
     POP_STATE();
 }
 <COMPLEX_MODE_COMP1_I>{DELIMETER} {
     print_realnum();
+    printf("DEBUG:COMPLEX_MODE_COMP1_I Number is real\n");
     POP_STATE();
 }
 <COMPLEX_MODE_COMP1_I>[+-] {
-    printf("DEBUG: There is another component to read!\n");
+    NOP();
+    printf("DEBUG:COMPLEX_MODE_COMP1_I There is another component to read!\n");
+    POP_STATE(); // Exit COMPLEX_MODE_COMP1
+    PUSH_STATE(COMPLEX_MODE_COMP2);
+    PUSH_STATE(REAL2_MODE);
 }
 <COMPLEX_MODE_COMP1_I>. {
     printf("Error of some sort!");
+    POP_STATE();
+}
+
+<COMPLEX_MODE_COMP2>i{DELIMETER} {
+    printf("DEBUG: Detected complex number\n");
+    POP_STATE();
+}
+
+<COMPLEX_MODE_COMP2>. {
+    printf("DEBUG: Invalid complex number");
     POP_STATE();
 }
 
